@@ -1,0 +1,1375 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>四季報読破術 完全攻略ポータル</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;800&family=Outfit:wght@500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              brand: {
+                50: "#eff6ff",
+                100: "#dbeafe",
+                200: "#bfdbfe",
+                300: "#93c5fd",
+                400: "#60a5fa",
+                500: "#3b82f6",
+                600: "#2563eb",
+                700: "#1d4ed8",
+                800: "#1e40af",
+                900: "#172554",
+              },
+            },
+            fontFamily: {
+              sans: ['"Noto Sans JP"', "sans-serif"],
+              display: ['"Outfit"', '"Noto Sans JP"', "sans-serif"],
+            },
+            boxShadow: {
+              glow: "0 24px 60px rgba(37, 99, 235, 0.18)",
+            },
+          },
+        },
+      };
+    </script>
+    <style>
+      html {
+        scroll-behavior: smooth;
+      }
+
+      body {
+        font-family: "Noto Sans JP", sans-serif;
+        background:
+          radial-gradient(circle at top left, rgba(59, 130, 246, 0.16), transparent 32%),
+          radial-gradient(circle at 85% 15%, rgba(96, 165, 250, 0.12), transparent 26%),
+          linear-gradient(180deg, #f8fbff 0%, #eef4fb 48%, #f8fafc 100%);
+        color: #0f172a;
+      }
+
+      .hero-mesh {
+        background:
+          linear-gradient(135deg, rgba(37, 99, 235, 0.92), rgba(59, 130, 246, 0.82)),
+          radial-gradient(circle at 20% 20%, rgba(255, 255, 255, 0.18), transparent 20%),
+          radial-gradient(circle at 80% 30%, rgba(255, 255, 255, 0.16), transparent 24%);
+      }
+
+      .glass-card {
+        background: rgba(255, 255, 255, 0.82);
+        backdrop-filter: blur(16px);
+      }
+
+      .tab-surface {
+        position: relative;
+        overflow: hidden;
+      }
+
+      .tab-surface::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(140deg, rgba(255, 255, 255, 0.65), transparent 55%);
+        pointer-events: none;
+      }
+
+      .flip-scene {
+        perspective: 1400px;
+      }
+
+      .flip-card {
+        min-height: 250px;
+        transform-style: preserve-3d;
+        transition: transform 0.72s cubic-bezier(0.2, 0.7, 0.2, 1);
+      }
+
+      .flip-card.is-flipped {
+        transform: rotateY(180deg);
+      }
+
+      .flip-face {
+        position: absolute;
+        inset: 0;
+        backface-visibility: hidden;
+        -webkit-backface-visibility: hidden;
+      }
+
+      .flip-face.back {
+        transform: rotateY(180deg);
+      }
+
+      @media (hover: hover) {
+        .flip-scene:hover .flip-card {
+          transform: rotateY(180deg);
+        }
+      }
+
+      .chart-panel {
+        background:
+          linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(239, 246, 255, 0.88)),
+          linear-gradient(135deg, rgba(59, 130, 246, 0.08), transparent 46%);
+      }
+
+      .fade-up {
+        animation: fade-up 0.45s ease both;
+      }
+
+      @keyframes fade-up {
+        from {
+          opacity: 0;
+          transform: translateY(10px);
+        }
+
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+    </style>
+  </head>
+  <body class="min-h-screen text-slate-900">
+    <div id="root"></div>
+
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+
+    <script type="text/babel">
+      const { useEffect, useRef, useState, startTransition } = React;
+
+      function Icon({ name, className }) {
+        const ref = useRef(null);
+        useEffect(() => {
+          if (ref.current && window.lucide) {
+            ref.current.innerHTML =
+              "<i data-lucide='" + name + "' class='" + className + "'></i>";
+            window.lucide.createIcons({ root: ref.current });
+          }
+        }, [name, className]);
+        return <span ref={ref} className="contents"></span>;
+      }
+
+      const tabs = [
+        { id: "home", label: "ホーム", icon: "house" },
+        { id: "media", label: "マルチメディア", icon: "monitor-play" },
+        { id: "cards", label: "フラッシュカード", icon: "layers-3" },
+        { id: "quiz", label: "理解度クイズ", icon: "badge-help" },
+        { id: "simulator", label: "期待値シミュレータ", icon: "line-chart" },
+      ];
+
+      const corePoints = [
+        {
+          title: "変化点を最短で拾う",
+          description:
+            "四季報を全文精読するのではなく、見出し・業績トレンド・コメント欄から企業の変化を先に発見し、候補銘柄を高速で絞り込みます。",
+        },
+        {
+          title: "数字を同じ物差しで比べる",
+          description:
+            "営業利益、進捗率、PER、ROEなどの指標を分析シートに載せることで、感覚ではなく比較軸をそろえた判断に近づけます。",
+        },
+        {
+          title: "読破を投資行動につなげる",
+          description:
+            "読むだけで終わらせず、深掘り候補の優先順位付け、次に見るIR資料、期待値の高い検証順まで整理して実戦へつなげます。",
+        },
+      ];
+
+      const flashcards = [
+        {
+          front: "見出し",
+          back: "短い一文の中に、企業の転換点や注目材料が凝縮されています。最初の一次選別ではここを起点に読むと効率が上がります。",
+        },
+        {
+          front: "営業利益",
+          back: "本業でどれだけ稼げているかを見る基本軸です。売上だけでなく、利益の伸びや前年同期比の変化まで確認します。",
+        },
+        {
+          front: "進捗率",
+          back: "通期計画に対して今どこまで利益が積み上がっているかを示します。上方修正余地のヒントになる重要指標です。",
+        },
+        {
+          front: "PER",
+          back: "利益に対して株価が何倍まで評価されているかの目安です。成長性や期待先行の度合いを考えるときの補助線になります。",
+        },
+        {
+          front: "ROE",
+          back: "自己資本をどれだけ効率よく利益に変えられているかを測る指標です。資本効率の高い企業探しに役立ちます。",
+        },
+        {
+          front: "分析シート",
+          back: "読みながら気づいた情報を蓄積し、後から候補銘柄を比較し直せる土台です。再現性と継続性を高める重要ツールです。",
+        },
+      ];
+
+      const quizQuestions = [
+        {
+          question:
+            "四季報を短時間で読み切るとき、最初のゴールとして最も近いものはどれですか？",
+          options: [
+            "全企業を最初から最後まで精読する",
+            "候補銘柄を一次選別する",
+            "チャートだけで売買判断する",
+            "掲示板の人気順で並べ替える",
+          ],
+          answer: 1,
+          explanation:
+            "この教材の考え方は、高速で全体を回しながら“次に深掘りすべき企業”を見つけることです。最初から全社を深く読むより、候補の絞り込みが優先されます。",
+        },
+        {
+          question:
+            "企業の変化を見つけるヒントとして、特に優先して見る組み合わせはどれですか？",
+          options: [
+            "株価チャートと板情報だけ",
+            "見出し・業績推移・コメント欄",
+            "SNSの口コミと掲示板",
+            "株主優待の有無だけ",
+          ],
+          answer: 1,
+          explanation:
+            "四季報では、見出しと業績推移、そして補足コメントを組み合わせて読むことで、好転・鈍化・材料性の兆しをつかみやすくなります。",
+        },
+        {
+          question:
+            "分析シートを使う最大のメリットとして最も適切なのはどれですか？",
+          options: [
+            "気分で銘柄を選びやすくなる",
+            "四季報を読まずに済む",
+            "比較軸をそろえて再現性を高められる",
+            "利益を確約できる",
+          ],
+          answer: 2,
+          explanation:
+            "分析シートの価値は、気になった企業を同じフォーマットで比較し直せることです。判断がブレにくくなり、継続学習にもつながります。",
+        },
+      ];
+
+      const runPalette = [
+        { stroke: "#1d4ed8", fill: "rgba(29, 78, 216, 0.10)" },
+        { stroke: "#2563eb", fill: "rgba(37, 99, 235, 0.10)" },
+        { stroke: "#3b82f6", fill: "rgba(59, 130, 246, 0.10)" },
+        { stroke: "#60a5fa", fill: "rgba(96, 165, 250, 0.10)" },
+        { stroke: "#0f172a", fill: "rgba(15, 23, 42, 0.08)" },
+      ];
+
+      const initialSimulator = {
+        successRate: 50,
+        gain: 5,
+        loss: 2,
+        trials: 24,
+      };
+
+      function clamp(value, min, max) {
+        return Math.min(max, Math.max(min, value));
+      }
+
+      function buildXTicks(trials) {
+        const points = new Set([0, trials]);
+        const roughStep = Math.max(1, Math.round(trials / 4));
+
+        for (let x = roughStep; x < trials; x += roughStep) {
+          points.add(x);
+        }
+
+        return Array.from(points).sort((a, b) => a - b);
+      }
+
+      function buildYTicks(minValue, maxValue) {
+        const ticks = [];
+        const segments = 4;
+        const step = (maxValue - minValue) / segments;
+
+        for (let i = 0; i <= segments; i += 1) {
+          ticks.push(Number((minValue + step * i).toFixed(2)));
+        }
+
+        ticks.push(0);
+
+        return Array.from(new Set(ticks))
+          .sort((a, b) => a - b)
+          .map((value) => Number(value.toFixed(2)));
+      }
+
+      function generateSimulations(params) {
+        return Array.from({ length: 5 }, (_, index) => {
+          let cumulative = 0;
+          const points = [{ x: 0, y: 0 }];
+
+          for (let trial = 1; trial <= params.trials; trial += 1) {
+            const success = Math.random() < params.successRate / 100;
+            cumulative += success ? params.gain : -params.loss;
+            points.push({ x: trial, y: Number(cumulative.toFixed(2)) });
+          }
+
+          return {
+            id: index + 1,
+            points,
+            final: Number(cumulative.toFixed(2)),
+          };
+        });
+      }
+
+      function Sidebar({ activeTab, onSelect }) {
+        return (
+          <aside className="hidden lg:flex lg:w-80 lg:flex-col lg:gap-6 lg:sticky lg:top-6 lg:self-start">
+            <div className="hero-mesh rounded-[28px] p-6 text-white shadow-glow">
+              <div className="mb-6 flex items-center gap-3">
+                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/16 backdrop-blur">
+                  <Icon name="book-open" className="h-6 w-6 text-white" />
+                </div>
+                <div>
+                  <p className="font-display text-lg font-semibold tracking-wide">
+                    四季報読破術
+                  </p>
+                  <p className="text-sm text-blue-100">完全攻略ポータル</p>
+                </div>
+              </div>
+
+              <h1 className="font-display text-2xl font-bold leading-tight">
+                数時間で全体像をつかみ、
+                <br />
+                深掘り候補へつなげる学習拠点
+              </h1>
+
+              <p className="mt-4 text-sm leading-7 text-blue-50/95">
+                YDK合同会社
+                <br />
+                まる@投資とAIの先生
+                <br />
+                データ分析とAIを掛け合わせ、初心者でも再現しやすい企業分析と投資学習を設計する講師。
+              </p>
+            </div>
+
+            <div className="glass-card rounded-[28px] border border-white/70 p-4 shadow-xl shadow-slate-200/60">
+              <p className="px-3 pb-3 text-xs font-bold uppercase tracking-[0.22em] text-slate-400">
+                Navigation
+              </p>
+              <nav className="space-y-2">
+                {tabs.map((tab) => {
+                  const isActive = activeTab === tab.id;
+                  return (
+                    <button
+                      key={tab.id}
+                      type="button"
+                      onClick={() => onSelect(tab.id)}
+                      className={[
+                        "flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-left transition",
+                        isActive
+                          ? "bg-brand-600 text-white shadow-lg shadow-blue-200/70"
+                          : "bg-slate-50 text-slate-600 hover:bg-brand-50 hover:text-brand-700",
+                      ].join(" ")}
+                    >
+                      <span
+                        className={[
+                          "flex h-10 w-10 items-center justify-center rounded-xl",
+                          isActive ? "bg-white/16" : "bg-white shadow-sm",
+                        ].join(" ")}
+                      >
+                        <Icon
+                          name={tab.icon}
+                          className={[
+                            "h-5 w-5",
+                            isActive ? "text-white" : "text-brand-600",
+                          ].join(" ")}
+                        />
+                      </span>
+                      <span className="font-medium">{tab.label}</span>
+                    </button>
+                  );
+                })}
+              </nav>
+            </div>
+
+            <div className="glass-card rounded-[28px] border border-white/70 p-5 shadow-xl shadow-slate-200/60">
+              <div className="flex items-center gap-3">
+                <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-brand-50">
+                  <Icon name="file-down" className="h-5 w-5 text-brand-600" />
+                </span>
+                <div>
+                  <p className="font-display text-lg font-semibold text-slate-900">
+                    補助リソース
+                  </p>
+                  <p className="text-sm text-slate-500">PDFと分析シートへすぐアクセス</p>
+                </div>
+              </div>
+
+              <div className="mt-4 space-y-3">
+                <a
+                  href="./スライド資料.pdf"
+                  className="flex items-center justify-between rounded-2xl bg-slate-50 px-4 py-3 text-sm font-medium text-slate-700 transition hover:bg-brand-50 hover:text-brand-700"
+                >
+                  <span>スライド資料を開く</span>
+                  <Icon name="arrow-up-right" className="h-4 w-4 text-current" />
+                </a>
+                <a
+                  href="./補足記事.pdf"
+                  className="flex items-center justify-between rounded-2xl bg-slate-50 px-4 py-3 text-sm font-medium text-slate-700 transition hover:bg-brand-50 hover:text-brand-700"
+                >
+                  <span>補足記事を読む</span>
+                  <Icon name="arrow-up-right" className="h-4 w-4 text-current" />
+                </a>
+                <a
+                  href="https://docs.google.com/spreadsheets/u/0/d/1MPHNqta90xhokBEH2-UORkLxbmm7ScD14dWJv9G4F4s/copy"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="flex items-center justify-between rounded-2xl bg-brand-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-brand-700"
+                >
+                  <span>分析シートをダウンロード</span>
+                  <Icon name="download" className="h-4 w-4 text-white" />
+                </a>
+              </div>
+            </div>
+          </aside>
+        );
+      }
+
+      function MobileNav({ activeTab, onSelect }) {
+        return (
+          <div className="lg:hidden">
+            <div className="hero-mesh rounded-[28px] p-5 text-white shadow-glow">
+              <div className="flex items-center gap-3">
+                <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/16">
+                  <Icon name="book-open" className="h-6 w-6 text-white" />
+                </span>
+                <div>
+                  <p className="font-display text-xl font-bold">四季報読破術 完全攻略ポータル</p>
+                  <p className="text-sm text-blue-100">YDK合同会社 / まる@投資とAIの先生</p>
+                </div>
+              </div>
+              <p className="mt-4 text-sm leading-7 text-blue-50/95">
+                四季報を数時間で読み切るための要点、解説動画、理解度確認、期待値の可視化までを1ページで学べます。
+              </p>
+            </div>
+
+            <div className="glass-card mt-4 rounded-[24px] border border-white/70 p-4 shadow-lg shadow-slate-200/60">
+              <label className="mb-2 block text-xs font-bold uppercase tracking-[0.22em] text-slate-400">
+                セクション切り替え
+              </label>
+              <div className="relative">
+                <select
+                  value={activeTab}
+                  onChange={(event) => onSelect(event.target.value)}
+                  className="w-full appearance-none rounded-2xl border border-slate-200 bg-white px-4 py-3 pr-12 text-sm font-medium text-slate-700 outline-none transition focus:border-brand-400 focus:ring-4 focus:ring-brand-100"
+                >
+                  {tabs.map((tab) => (
+                    <option key={tab.id} value={tab.id}>
+                      {tab.label}
+                    </option>
+                  ))}
+                </select>
+                <span className="pointer-events-none absolute inset-y-0 right-4 flex items-center">
+                  <Icon name="chevrons-up-down" className="h-4 w-4 text-slate-400" />
+                </span>
+              </div>
+            </div>
+          </div>
+        );
+      }
+
+      function HomeTab() {
+        return (
+          <div className="space-y-6 fade-up">
+            <section className="hero-mesh relative overflow-hidden rounded-[32px] px-6 py-7 text-white shadow-glow sm:px-8 sm:py-9">
+              <div className="relative z-10">
+                <div className="flex flex-wrap items-center gap-3 text-xs font-semibold uppercase tracking-[0.22em] text-blue-100">
+                  <span className="rounded-full border border-white/20 px-3 py-1">2026年春号対応</span>
+                  <span className="rounded-full border border-white/20 px-3 py-1">PDF・動画・音声収録</span>
+                  <span className="rounded-full border border-white/20 px-3 py-1">分析シート連携</span>
+                </div>
+                <h2 className="mt-5 font-display text-3xl font-bold leading-tight sm:text-4xl">
+                  四季報を“読む作業”から、
+                  <br className="hidden sm:block" />
+                  “候補を見つける技術”へ変える。
+                </h2>
+                <p className="mt-4 max-w-3xl text-sm leading-8 text-blue-50/95 sm:text-base">
+                  この教材の最大のベネフィットは、四季報を読破すること自体を目的にせず、企業の変化点を高速で見つけて次の行動へつなぐことです。
+                  スライド・動画・音声・補足記事を行き来しながら、学びを実戦向けの判断軸に落とし込めます。
+                </p>
+              </div>
+            </section>
+
+            <section className="grid gap-6 xl:grid-cols-[1.1fr,0.9fr]">
+              <div className="glass-card tab-surface rounded-[28px] border border-white/70 p-6 shadow-xl shadow-slate-200/60">
+                <div className="mb-5 flex items-center gap-3">
+                  <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-brand-50">
+                    <Icon name="target" className="h-6 w-6 text-brand-600" />
+                  </span>
+                  <div>
+                    <h3 className="font-display text-2xl font-semibold text-slate-900">
+                      3つの重要ポイント
+                    </h3>
+                    <p className="text-sm text-slate-500">教材の核になる考え方を先に把握</p>
+                  </div>
+                </div>
+
+                <ul className="space-y-4">
+                  {corePoints.map((point, index) => (
+                    <li
+                      key={point.title}
+                      className="rounded-2xl border border-slate-100 bg-white/90 p-4 shadow-sm shadow-slate-100"
+                    >
+                      <div className="flex items-start gap-4">
+                        <span className="mt-1 flex h-8 w-8 flex-none items-center justify-center rounded-full bg-brand-600 text-sm font-bold text-white">
+                          {index + 1}
+                        </span>
+                        <div>
+                          <p className="text-lg font-bold text-slate-900">{point.title}</p>
+                          <p className="mt-2 text-sm leading-7 text-slate-600">
+                            {point.description}
+                          </p>
+                        </div>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+
+              <div className="glass-card tab-surface rounded-[28px] border border-white/70 p-6 shadow-xl shadow-slate-200/60">
+                <div className="mb-5 flex items-center gap-3">
+                  <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-brand-50">
+                    <Icon name="user-round" className="h-6 w-6 text-brand-600" />
+                  </span>
+                  <div>
+                    <h3 className="font-display text-2xl font-semibold text-slate-900">
+                      講師プロフィール
+                    </h3>
+                    <p className="text-sm text-slate-500">YDK合同会社 / まる@投資とAIの先生</p>
+                  </div>
+                </div>
+
+                <div className="rounded-[24px] bg-slate-900 p-5 text-slate-50 shadow-lg">
+                  <p className="font-display text-xl font-semibold text-white">
+                    データ分析で企業を見る視点を、
+                    <br />
+                    個人投資家の武器に変える。
+                  </p>
+                  <p className="mt-4 text-sm leading-8 text-slate-300">
+                    データアナリストとしての視点と、AI・投資教育の実践知を組み合わせて、
+                    「読める」だけでなく「比較できる」「候補が残る」四季報活用法を伝える講師です。
+                  </p>
+                </div>
+
+                <div className="mt-5 grid gap-3 sm:grid-cols-2">
+                  <a
+                    href="./補足記事.pdf"
+                    className="rounded-2xl border border-slate-200 bg-white px-4 py-4 text-sm font-medium text-slate-700 transition hover:border-brand-200 hover:bg-brand-50 hover:text-brand-700"
+                  >
+                    補足記事PDFを見る
+                  </a>
+                  <a
+                    href="https://docs.google.com/spreadsheets/u/0/d/1MPHNqta90xhokBEH2-UORkLxbmm7ScD14dWJv9G4F4s/copy"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="rounded-2xl bg-brand-600 px-4 py-4 text-center text-sm font-semibold text-white transition hover:bg-brand-700"
+                  >
+                    分析シートをダウンロード
+                  </a>
+                </div>
+              </div>
+            </section>
+
+            <section className="glass-card tab-surface rounded-[30px] border border-white/70 p-4 shadow-xl shadow-slate-200/60 sm:p-6">
+              <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <h3 className="font-display text-2xl font-semibold text-slate-900">
+                    スライド資料
+                  </h3>
+                  <p className="text-sm text-slate-500">
+                    埋め込みPDFで教材スライドをそのまま確認できます
+                  </p>
+                </div>
+                <a
+                  href="./スライド資料.pdf"
+                  className="inline-flex items-center gap-2 rounded-2xl bg-slate-900 px-4 py-3 text-sm font-semibold text-white transition hover:bg-slate-800"
+                >
+                  <Icon name="external-link" className="h-4 w-4 text-white" />
+                  別タブで開く
+                </a>
+              </div>
+              <div className="overflow-hidden rounded-[24px] border border-slate-200 bg-white">
+                <iframe
+                  title="四季報読破術 スライド資料"
+                  src="./スライド資料.pdf#view=FitH"
+                  className="h-[70vh] w-full"
+                ></iframe>
+              </div>
+            </section>
+          </div>
+        );
+      }
+
+      function MediaTab() {
+        return (
+          <div className="space-y-6 fade-up">
+            <section className="grid gap-6 xl:grid-cols-2">
+              <article className="glass-card tab-surface rounded-[30px] border border-white/70 p-6 shadow-xl shadow-slate-200/60">
+                <div className="mb-5 flex items-center gap-3">
+                  <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-brand-50">
+                    <Icon name="video" className="h-6 w-6 text-brand-600" />
+                  </span>
+                  <div>
+                    <h3 className="font-display text-2xl font-semibold text-slate-900">
+                      解説動画
+                    </h3>
+                    <p className="text-sm text-slate-500">
+                      四季報読破の流れを視覚的に追えるメイン教材
+                    </p>
+                  </div>
+                </div>
+                <p className="mb-4 text-sm leading-7 text-slate-600">
+                  動画では、四季報をどの順番で見て、どこで候補を残し、どの項目を後で比較すべきかを、画面の流れとともに確認できます。
+                </p>
+                <video controls className="w-full rounded-[24px] bg-slate-950 shadow-lg" preload="metadata">
+                  <source src="./解説動画.mp4" type="video/mp4" />
+                  お使いのブラウザでは動画を再生できません。
+                </video>
+              </article>
+
+              <article className="glass-card tab-surface rounded-[30px] border border-white/70 p-6 shadow-xl shadow-slate-200/60">
+                <div className="mb-5 flex items-center gap-3">
+                  <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-brand-50">
+                    <Icon name="headphones" className="h-6 w-6 text-brand-600" />
+                  </span>
+                  <div>
+                    <h3 className="font-display text-2xl font-semibold text-slate-900">
+                      解説音声
+                    </h3>
+                    <p className="text-sm text-slate-500">
+                      移動中や復習用に使いやすい音声教材
+                    </p>
+                  </div>
+                </div>
+                <p className="mb-4 text-sm leading-7 text-slate-600">
+                  音声では、四季報を高速で読むときの観点を耳から整理できます。動画を見た後の復習や、重点ポイントの再インストールに向いています。
+                </p>
+                <div className="rounded-[24px] bg-slate-900 p-5 shadow-lg">
+                  <audio controls className="w-full">
+                    <source src="./解説音声.m4a" type="audio/mp4" />
+                    お使いのブラウザでは音声を再生できません。
+                  </audio>
+                </div>
+
+                <div className="mt-5 rounded-[24px] border border-blue-100 bg-blue-50 p-4">
+                  <p className="text-sm font-semibold text-brand-700">おすすめの使い方</p>
+                  <p className="mt-2 text-sm leading-7 text-slate-600">
+                    1周目は動画、2周目は音声、3周目でスライドと分析シートを併用すると、知識が「読む力」から「残す力」に変わりやすくなります。
+                  </p>
+                </div>
+              </article>
+            </section>
+          </div>
+        );
+      }
+
+      function FlashcardsTab({ flippedCards, onToggle }) {
+        return (
+          <div className="space-y-6 fade-up">
+            <section className="glass-card tab-surface rounded-[30px] border border-white/70 p-6 shadow-xl shadow-slate-200/60">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+                <div>
+                  <h3 className="font-display text-3xl font-semibold text-slate-900">
+                    重要用語フラッシュカード
+                  </h3>
+                  <p className="mt-2 text-sm leading-7 text-slate-600">
+                    PCではホバー、スマホではタップでカードが裏返ります。重要語を“説明できる状態”にする復習用エリアです。
+                  </p>
+                </div>
+                <div className="rounded-2xl bg-slate-100 px-4 py-3 text-sm font-medium text-slate-500">
+                  表で用語、裏で意味を確認
+                </div>
+              </div>
+            </section>
+
+            <section className="grid gap-5 md:grid-cols-2 2xl:grid-cols-3">
+              {flashcards.map((card, index) => {
+                const isFlipped = Boolean(flippedCards[index]);
+                return (
+                  <button
+                    key={card.front}
+                    type="button"
+                    onClick={() => onToggle(index)}
+                    aria-pressed={isFlipped}
+                    className="flip-scene h-full text-left"
+                  >
+                    <div className={`flip-card relative h-full ${isFlipped ? "is-flipped" : ""}`}>
+                      <div className="flip-face rounded-[30px] border border-white/70 bg-white p-6 shadow-xl shadow-slate-200/60">
+                        <div className="flex h-full flex-col justify-between">
+                          <div>
+                            <div className="flex items-center justify-between">
+                              <span className="rounded-full bg-brand-50 px-3 py-1 text-xs font-bold uppercase tracking-[0.18em] text-brand-700">
+                                Term {index + 1}
+                              </span>
+                              <Icon name="refresh-cw" className="h-4 w-4 text-slate-400" />
+                            </div>
+                            <h4 className="mt-10 font-display text-3xl font-semibold text-slate-900">
+                              {card.front}
+                            </h4>
+                          </div>
+                          <p className="text-sm leading-7 text-slate-500">
+                            ホバーまたはタップで意味を見る
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flip-face back rounded-[30px] border border-brand-200 bg-gradient-to-br from-brand-600 via-brand-500 to-slate-900 p-6 text-white shadow-glow">
+                        <div className="flex h-full flex-col justify-between">
+                          <div>
+                            <span className="rounded-full bg-white/14 px-3 py-1 text-xs font-bold uppercase tracking-[0.18em] text-blue-100">
+                              Meaning
+                            </span>
+                            <p className="mt-8 text-lg leading-8 text-white/95">{card.back}</p>
+                          </div>
+                          <p className="text-sm text-blue-100/95">もう一度タップで表に戻せます</p>
+                        </div>
+                      </div>
+                    </div>
+                  </button>
+                );
+              })}
+            </section>
+          </div>
+        );
+      }
+
+      function QuizTab({
+        quizIndex,
+        selection,
+        score,
+        complete,
+        onSelectOption,
+        onNext,
+        onReset,
+      }) {
+        if (complete) {
+          const percentage = Math.round((score / quizQuestions.length) * 100);
+          const comment =
+            percentage === 100
+              ? "四季報を読む目的と比較軸がかなり整理できています。次は実際に分析シートへ落とし込んでみましょう。"
+              : percentage >= 67
+                ? "考え方の芯はつかめています。迷った問題だけスライドや動画に戻ると理解がさらに固まります。"
+                : "もう一度ホームとフラッシュカードを見直すと、読む順番と指標の役割がかなり整理しやすくなります。";
+
+          return (
+            <div className="space-y-6 fade-up">
+              <section className="hero-mesh rounded-[30px] p-8 text-white shadow-glow">
+                <p className="text-sm font-semibold uppercase tracking-[0.22em] text-blue-100">
+                  Quiz Result
+                </p>
+                <h3 className="mt-4 font-display text-4xl font-bold">
+                  {score} / {quizQuestions.length} 問 正解
+                </h3>
+                <p className="mt-4 max-w-2xl text-sm leading-8 text-blue-50/95 sm:text-base">
+                  {comment}
+                </p>
+                <button
+                  type="button"
+                  onClick={onReset}
+                  className="mt-6 inline-flex items-center gap-2 rounded-2xl bg-white px-5 py-3 text-sm font-semibold text-brand-700 transition hover:bg-blue-50"
+                >
+                  <Icon name="rotate-ccw" className="h-4 w-4 text-current" />
+                  もう一度チャレンジ
+                </button>
+              </section>
+            </div>
+          );
+        }
+
+        const currentQuestion = quizQuestions[quizIndex];
+        const isAnswered = selection !== null;
+        const isCorrect = isAnswered && selection === currentQuestion.answer;
+
+        return (
+          <div className="space-y-6 fade-up">
+            <section className="glass-card tab-surface rounded-[30px] border border-white/70 p-6 shadow-xl shadow-slate-200/60">
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <p className="text-xs font-bold uppercase tracking-[0.22em] text-slate-400">
+                    Understanding Quiz
+                  </p>
+                  <h3 className="mt-2 font-display text-3xl font-semibold text-slate-900">
+                    Q{quizIndex + 1} / {quizQuestions.length}
+                  </h3>
+                </div>
+                <div className="h-3 w-full max-w-xs overflow-hidden rounded-full bg-slate-100">
+                  <div
+                    className="h-full rounded-full bg-brand-600 transition-all duration-500"
+                    style={{
+                      width: `${((quizIndex + 1) / quizQuestions.length) * 100}%`,
+                    }}
+                  ></div>
+                </div>
+              </div>
+
+              <div className="mt-6 rounded-[28px] bg-slate-950 p-6 text-white shadow-lg">
+                <p className="text-lg leading-8 sm:text-xl">{currentQuestion.question}</p>
+              </div>
+
+              <div className="mt-6 grid gap-3">
+                {currentQuestion.options.map((option, index) => {
+                  const chosen = selection === index;
+                  const correct = currentQuestion.answer === index;
+                  const statusClass = isAnswered
+                    ? correct
+                      ? "border-emerald-300 bg-emerald-50 text-emerald-700"
+                      : chosen
+                        ? "border-rose-300 bg-rose-50 text-rose-700"
+                        : "border-slate-200 bg-white text-slate-500"
+                    : "border-slate-200 bg-white text-slate-700 hover:border-brand-300 hover:bg-brand-50 hover:text-brand-700";
+
+                  return (
+                    <button
+                      key={option}
+                      type="button"
+                      disabled={isAnswered}
+                      onClick={() => onSelectOption(index)}
+                      className={`rounded-[24px] border px-5 py-4 text-left text-sm font-medium leading-7 transition ${statusClass}`}
+                    >
+                      {option}
+                    </button>
+                  );
+                })}
+              </div>
+
+              {isAnswered && (
+                <div
+                  className={`mt-6 rounded-[26px] border p-5 ${
+                    isCorrect
+                      ? "border-emerald-200 bg-emerald-50"
+                      : "border-rose-200 bg-rose-50"
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <span
+                      className={`flex h-11 w-11 items-center justify-center rounded-2xl ${
+                        isCorrect ? "bg-emerald-100" : "bg-rose-100"
+                      }`}
+                    >
+                      <Icon
+                        name={isCorrect ? "check" : "x"}
+                        className={`h-5 w-5 ${
+                          isCorrect ? "text-emerald-600" : "text-rose-600"
+                        }`}
+                      />
+                    </span>
+                    <div>
+                      <p
+                        className={`font-display text-xl font-semibold ${
+                          isCorrect ? "text-emerald-700" : "text-rose-700"
+                        }`}
+                      >
+                        {isCorrect ? "正解です" : "不正解です"}
+                      </p>
+                      <p className="text-sm text-slate-600">
+                        正答: {currentQuestion.options[currentQuestion.answer]}
+                      </p>
+                    </div>
+                  </div>
+                  <p className="mt-4 text-sm leading-7 text-slate-700">
+                    {currentQuestion.explanation}
+                  </p>
+                  <button
+                    type="button"
+                    onClick={onNext}
+                    className="mt-5 inline-flex items-center gap-2 rounded-2xl bg-slate-900 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-800"
+                  >
+                    <Icon name="arrow-right" className="h-4 w-4 text-white" />
+                    {quizIndex === quizQuestions.length - 1 ? "スコアを見る" : "次の問題へ"}
+                  </button>
+                </div>
+              )}
+            </section>
+          </div>
+        );
+      }
+
+      function RangeControl({
+        label,
+        sublabel,
+        min,
+        max,
+        step,
+        value,
+        suffix,
+        onChange,
+      }) {
+        return (
+          <div className="rounded-[24px] border border-slate-200 bg-white p-4 shadow-sm">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="text-sm font-semibold text-slate-800">{label}</p>
+                <p className="mt-1 text-xs leading-6 text-slate-500">{sublabel}</p>
+              </div>
+              <div className="rounded-2xl bg-slate-100 px-3 py-2 text-sm font-bold text-slate-700">
+                {value}
+                {suffix}
+              </div>
+            </div>
+
+            <input
+              type="range"
+              min={min}
+              max={max}
+              step={step}
+              value={value}
+              onChange={(event) => onChange(event.target.value)}
+              className="mt-4 w-full accent-[#2563eb]"
+            />
+
+            <div className="mt-3 flex items-center gap-3">
+              <input
+                type="number"
+                min={min}
+                max={max}
+                step={step}
+                value={value}
+                onChange={(event) => onChange(event.target.value)}
+                className="w-28 rounded-2xl border border-slate-200 px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-brand-400 focus:ring-4 focus:ring-brand-100"
+              />
+              <span className="text-sm text-slate-500">
+                {min}
+                {suffix} から {max}
+                {suffix}
+              </span>
+            </div>
+          </div>
+        );
+      }
+
+      function SimulationChart({ runs, trials }) {
+        const allYValues = runs.flatMap((run) => run.points.map((point) => point.y));
+        const rawMin = Math.min(...allYValues, 0);
+        const rawMax = Math.max(...allYValues, 0);
+        const range = Math.max(rawMax - rawMin, 1);
+        const padding = Math.max(range * 0.15, 1);
+        const yMin = Math.min(rawMin - padding, -padding);
+        const yMax = Math.max(rawMax + padding, padding);
+        const yRange = yMax - yMin;
+        const xMin = -2.4;
+        const xMax = trials + 1.8;
+        const viewBox = `${xMin} ${-yMax} ${xMax - xMin} ${yRange}`;
+        const xTicks = buildXTicks(trials);
+        const yTicks = buildYTicks(yMin, yMax);
+        const fontSize = Math.max(yRange * 0.035, 2.8);
+        const strokeWidth = Math.max(yRange * 0.006, 0.55);
+        const xAxisLabelY = -yMin - fontSize * 0.8;
+
+        return (
+          <div className="overflow-hidden rounded-[28px] border border-slate-200 bg-white p-3 shadow-lg shadow-slate-200/60 sm:p-4">
+            <svg
+              viewBox={viewBox}
+              className="h-[340px] w-full overflow-visible"
+              role="img"
+              aria-label="5回分の期待値シミュレーション折れ線グラフ"
+            >
+              <rect
+                x={xMin}
+                y={-yMax}
+                width={xMax - xMin}
+                height={yRange}
+                rx="1.5"
+                fill="url(#chart-bg)"
+              />
+
+              <defs>
+                <linearGradient id="chart-bg" x1="0" x2="1" y1="0" y2="1">
+                  <stop offset="0%" stopColor="#ffffff" />
+                  <stop offset="100%" stopColor="#eff6ff" />
+                </linearGradient>
+              </defs>
+
+              {yTicks.map((tick) => (
+                <g key={`y-${tick}`}>
+                  <line
+                    x1="0"
+                    y1={-tick}
+                    x2={trials}
+                    y2={-tick}
+                    stroke={tick === 0 ? "#1d4ed8" : "#dbeafe"}
+                    strokeWidth={tick === 0 ? strokeWidth * 1.25 : strokeWidth * 0.75}
+                    strokeDasharray={tick === 0 ? "none" : `${strokeWidth * 2.4} ${strokeWidth * 2.4}`}
+                  />
+                  <text
+                    x="-0.35"
+                    y={-tick}
+                    textAnchor="end"
+                    dominantBaseline="middle"
+                    fill={tick === 0 ? "#1d4ed8" : "#64748b"}
+                    fontSize={fontSize}
+                    fontWeight={tick === 0 ? "700" : "500"}
+                  >
+                    {tick}
+                  </text>
+                </g>
+              ))}
+
+              {xTicks.map((tick) => (
+                <g key={`x-${tick}`}>
+                  <line
+                    x1={tick}
+                    y1={-yMax + fontSize * 0.2}
+                    x2={tick}
+                    y2={-yMin}
+                    stroke="#e2e8f0"
+                    strokeWidth={strokeWidth * 0.65}
+                  />
+                  <text
+                    x={tick}
+                    y={xAxisLabelY}
+                    textAnchor="middle"
+                    dominantBaseline="middle"
+                    fill="#64748b"
+                    fontSize={fontSize}
+                    fontWeight="600"
+                  >
+                    {tick}
+                  </text>
+                </g>
+              ))}
+
+              <line
+                x1="0"
+                y1={-yMax}
+                x2="0"
+                y2={-yMin}
+                stroke="#94a3b8"
+                strokeWidth={strokeWidth}
+              />
+
+              {runs.map((run, index) => (
+                <polyline
+                  key={run.id}
+                  fill="none"
+                  stroke={runPalette[index].stroke}
+                  strokeWidth={strokeWidth * 1.2}
+                  strokeLinejoin="round"
+                  strokeLinecap="round"
+                  points={run.points.map((point) => `${point.x},${-point.y}`).join(" ")}
+                />
+              ))}
+
+              {runs.map((run, index) =>
+                run.points.map((point, pointIndex) => (
+                  <circle
+                    key={`${run.id}-${pointIndex}`}
+                    cx={point.x}
+                    cy={-point.y}
+                    r={strokeWidth * 1.15}
+                    fill={runPalette[index].stroke}
+                    opacity={pointIndex === run.points.length - 1 ? 1 : 0.7}
+                  />
+                ))
+              )}
+            </svg>
+          </div>
+        );
+      }
+
+      function SimulatorTab({ params, onChange, onRerun, runs }) {
+        const expectedValue = Number(
+          (
+            (params.successRate / 100) * params.gain -
+            ((100 - params.successRate) / 100) * params.loss
+          ).toFixed(2)
+        );
+        const bestRun = Math.max(...runs.map((run) => run.final));
+        const worstRun = Math.min(...runs.map((run) => run.final));
+        const averageFinal = Number(
+          (runs.reduce((sum, run) => sum + run.final, 0) / runs.length).toFixed(2)
+        );
+
+        return (
+          <div className="space-y-6 fade-up">
+            <section className="glass-card tab-surface rounded-[30px] border border-white/70 p-6 shadow-xl shadow-slate-200/60">
+              <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
+                <div>
+                  <p className="text-xs font-bold uppercase tracking-[0.22em] text-slate-400">
+                    Expectancy Simulator
+                  </p>
+                  <h3 className="mt-2 font-display text-3xl font-semibold text-slate-900">
+                    継続による成果の可視化
+                  </h3>
+                  <p className="mt-2 max-w-3xl text-sm leading-7 text-slate-600">
+                    成功率、1回のプラス成果、1回のマイナス要因、試行回数を調整しながら、5回分の推移をランダムに描画します。
+                    ゼロラインを必ず含めるので、継続したときの振れ幅と地力の差が見やすくなります。
+                  </p>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={onRerun}
+                  className="inline-flex items-center gap-2 rounded-2xl bg-slate-900 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-800"
+                >
+                  <Icon name="refresh-cw" className="h-4 w-4 text-white" />
+                  もう5回シミュレーション
+                </button>
+              </div>
+            </section>
+
+            <section className="grid gap-6 2xl:grid-cols-[0.95fr,1.05fr]">
+              <div className="space-y-4">
+                <RangeControl
+                  label="成功率"
+                  sublabel="成果がプラスになる確率"
+                  min={0}
+                  max={100}
+                  step={1}
+                  value={params.successRate}
+                  suffix="%"
+                  onChange={(value) => onChange("successRate", value)}
+                />
+                <RangeControl
+                  label="1回あたりのプラス成果"
+                  sublabel="成功時に積み上がる値"
+                  min={1}
+                  max={20}
+                  step={0.5}
+                  value={params.gain}
+                  suffix=""
+                  onChange={(value) => onChange("gain", value)}
+                />
+                <RangeControl
+                  label="1回あたりのマイナス要因"
+                  sublabel="失敗時に減る値"
+                  min={1}
+                  max={20}
+                  step={0.5}
+                  value={params.loss}
+                  suffix=""
+                  onChange={(value) => onChange("loss", value)}
+                />
+                <RangeControl
+                  label="試行回数"
+                  sublabel="継続する回数"
+                  min={5}
+                  max={60}
+                  step={1}
+                  value={params.trials}
+                  suffix="回"
+                  onChange={(value) => onChange("trials", value)}
+                />
+              </div>
+
+              <div className="chart-panel rounded-[30px] border border-white/70 p-5 shadow-xl shadow-slate-200/60">
+                <div className="grid gap-4 sm:grid-cols-3">
+                  <div className="rounded-[22px] bg-white p-4 shadow-sm">
+                    <p className="text-xs font-bold uppercase tracking-[0.18em] text-slate-400">
+                      1回あたり期待値
+                    </p>
+                    <p className={`mt-3 font-display text-3xl font-semibold ${expectedValue >= 0 ? "text-emerald-600" : "text-rose-600"}`}>
+                      {expectedValue}
+                    </p>
+                  </div>
+                  <div className="rounded-[22px] bg-white p-4 shadow-sm">
+                    <p className="text-xs font-bold uppercase tracking-[0.18em] text-slate-400">
+                      5回平均の最終値
+                    </p>
+                    <p className="mt-3 font-display text-3xl font-semibold text-slate-900">
+                      {averageFinal}
+                    </p>
+                  </div>
+                  <div className="rounded-[22px] bg-white p-4 shadow-sm">
+                    <p className="text-xs font-bold uppercase tracking-[0.18em] text-slate-400">
+                      最高 / 最低
+                    </p>
+                    <p className="mt-3 text-lg font-bold text-slate-900">
+                      {bestRun} / {worstRun}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="mt-5">
+                  <SimulationChart runs={runs} trials={params.trials} />
+                </div>
+
+                <div className="mt-5 grid gap-3 sm:grid-cols-5">
+                  {runs.map((run, index) => (
+                    <div
+                      key={run.id}
+                      className="rounded-[22px] bg-white p-4 shadow-sm"
+                    >
+                      <div className="flex items-center gap-2">
+                        <span
+                          className="h-3 w-3 rounded-full"
+                          style={{ backgroundColor: runPalette[index].stroke }}
+                        ></span>
+                        <p className="text-sm font-semibold text-slate-700">Run {run.id}</p>
+                      </div>
+                      <p className="mt-3 font-display text-2xl font-semibold text-slate-900">
+                        {run.final}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </section>
+          </div>
+        );
+      }
+
+      function App() {
+        const [activeTab, setActiveTab] = useState("home");
+        const [flippedCards, setFlippedCards] = useState({});
+        const [quizIndex, setQuizIndex] = useState(0);
+        const [quizSelection, setQuizSelection] = useState(null);
+        const [quizScore, setQuizScore] = useState(0);
+        const [quizComplete, setQuizComplete] = useState(false);
+        const [simParams, setSimParams] = useState(initialSimulator);
+        const [simulationNonce, setSimulationNonce] = useState(0);
+        const [runs, setRuns] = useState(() => generateSimulations(initialSimulator));
+
+        useEffect(() => {
+          setRuns(generateSimulations(simParams));
+        }, [
+          simParams.successRate,
+          simParams.gain,
+          simParams.loss,
+          simParams.trials,
+          simulationNonce,
+        ]);
+
+        function handleTabSelect(tabId) {
+          startTransition(() => {
+            setActiveTab(tabId);
+          });
+        }
+
+        function toggleCard(index) {
+          setFlippedCards((current) => ({
+            ...current,
+            [index]: !current[index],
+          }));
+        }
+
+        function handleQuizSelect(optionIndex) {
+          if (quizSelection !== null || quizComplete) {
+            return;
+          }
+
+          setQuizSelection(optionIndex);
+
+          if (optionIndex === quizQuestions[quizIndex].answer) {
+            setQuizScore((current) => current + 1);
+          }
+        }
+
+        function handleQuizNext() {
+          if (quizIndex === quizQuestions.length - 1) {
+            setQuizComplete(true);
+            return;
+          }
+
+          setQuizIndex((current) => current + 1);
+          setQuizSelection(null);
+        }
+
+        function resetQuiz() {
+          setQuizIndex(0);
+          setQuizSelection(null);
+          setQuizScore(0);
+          setQuizComplete(false);
+        }
+
+        function updateSimulatorParam(key, rawValue) {
+          const parsed = Number(rawValue);
+
+          if (Number.isNaN(parsed)) {
+            return;
+          }
+
+          const nextValue =
+            key === "successRate"
+              ? clamp(parsed, 0, 100)
+              : key === "trials"
+                ? clamp(Math.round(parsed), 5, 60)
+                : clamp(parsed, 1, 20);
+
+          setSimParams((current) => ({
+            ...current,
+            [key]: nextValue,
+          }));
+        }
+
+        function rerunSimulation() {
+          setSimulationNonce((current) => current + 1);
+        }
+
+        function renderActiveTab() {
+          switch (activeTab) {
+            case "media":
+              return <MediaTab />;
+            case "cards":
+              return <FlashcardsTab flippedCards={flippedCards} onToggle={toggleCard} />;
+            case "quiz":
+              return (
+                <QuizTab
+                  quizIndex={quizIndex}
+                  selection={quizSelection}
+                  score={quizScore}
+                  complete={quizComplete}
+                  onSelectOption={handleQuizSelect}
+                  onNext={handleQuizNext}
+                  onReset={resetQuiz}
+                />
+              );
+            case "simulator":
+              return (
+                <SimulatorTab
+                  params={simParams}
+                  onChange={updateSimulatorParam}
+                  onRerun={rerunSimulation}
+                  runs={runs}
+                />
+              );
+            case "home":
+            default:
+              return <HomeTab />;
+          }
+        }
+
+        return (
+          <div className="min-h-screen">
+            <div className="mx-auto flex max-w-[1600px] flex-col gap-6 px-4 py-4 sm:px-6 sm:py-6 lg:flex-row lg:gap-8 lg:px-8">
+              <Sidebar activeTab={activeTab} onSelect={handleTabSelect} />
+
+              <main className="min-w-0 flex-1">
+                <MobileNav activeTab={activeTab} onSelect={handleTabSelect} />
+
+                <div className="mt-6 lg:mt-0">{renderActiveTab()}</div>
+
+                <footer className="mt-6 rounded-[28px] border border-white/70 bg-white/85 px-6 py-5 shadow-lg shadow-slate-200/60">
+                  <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                      <p className="font-display text-xl font-semibold text-slate-900">
+                        分析シートのダウンロード
+                      </p>
+                      <p className="mt-1 text-sm text-slate-500">
+                        教材内容を自分の比較軸に落とし込むためのコピー用リンクです。
+                      </p>
+                    </div>
+                    <a
+                      href="https://docs.google.com/spreadsheets/u/0/d/1MPHNqta90xhokBEH2-UORkLxbmm7ScD14dWJv9G4F4s/copy"
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex items-center justify-center gap-2 rounded-2xl bg-brand-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-brand-700"
+                    >
+                      <Icon name="download" className="h-4 w-4 text-white" />
+                      Googleスプレッドシートをコピー
+                    </a>
+                  </div>
+                </footer>
+              </main>
+            </div>
+          </div>
+        );
+      }
+
+      ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+    </script>
+  </body>
+</html>
